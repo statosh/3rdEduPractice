@@ -1,9 +1,9 @@
-# chart.py
 import matplotlib
-matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
+
+matplotlib.use("TkAgg")
 
 
 def format_size(size_bytes: int) -> str:
@@ -20,7 +20,6 @@ def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
     plt.clf()
     plt.close('all')
 
-    # 👉 тёмная тема
     plt.style.use("dark_background")
 
     labels = list(data.keys())
@@ -29,7 +28,8 @@ def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
 
     clean_labels = []
     for label in labels:
-        clean = label.replace("📁 ", "").replace("📄 ", "").replace("📁", "").replace("📄", "")
+        clean = label.replace("📁 ", "").replace(
+            "📄 ", "").replace("📁", "").replace("📄", "")
         clean_labels.append(clean)
 
     paired = list(zip(labels, clean_labels, sizes))
@@ -39,7 +39,6 @@ def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
     clean_labels = [p[1] for p in paired]
     sizes = [p[2] for p in paired]
 
-    # 👉 теперь 2 строки (вертикально)
     fig, (ax, ax_legend) = plt.subplots(
         2, 1,
         figsize=(6, 7),
@@ -47,7 +46,6 @@ def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
         gridspec_kw={"height_ratios": [3, 1]}
     )
 
-    # фон
     fig.patch.set_facecolor("#1e1e1e")
     ax.set_facecolor("#1e1e1e")
     ax_legend.set_facecolor("#1e1e1e")
@@ -73,7 +71,6 @@ def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
         autotext.set_color("white")
         autotext.set_fontweight('bold')
 
-    # 👉 подписи вниз
     legend_labels = []
     for label, size, pct in zip(clean_labels, sizes, percentages):
         legend_labels.append(f"{label} ({format_size(size)}) — {pct:.1f}%")

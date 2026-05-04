@@ -1,4 +1,3 @@
-# export.py
 import csv
 import os
 import sys
@@ -26,24 +25,24 @@ def export_to_csv(folder_sizes: dict, file_types: dict, filename: str = None):
     if filename is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"disk_analysis_{timestamp}.csv"
-    
+
     save_dir = get_app_dir()
     filepath = os.path.join(save_dir, filename)
-    
+
     sorted_folders = sorted(folder_sizes.items(), key=lambda x: x[1], reverse=True)[:10]
-    
+
     with open(filepath, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f, delimiter=";")
-        
+
         writer.writerow(["Топ-10 папок по размеру"])
         writer.writerow(["Папка", "Размер (байт)", "Размер"])
         for path, size in sorted_folders:
             writer.writerow([path, size, format_size(size)])
-        
+
         writer.writerow([])
         writer.writerow(["Распределение по типам файлов"])
         writer.writerow(["Тип", "Размер (байт)", "Размер"])
         for ftype, size in file_types.items():
             writer.writerow([ftype, size, format_size(size)])
-    
+
     return filepath
