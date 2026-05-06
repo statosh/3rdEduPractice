@@ -22,13 +22,6 @@ def get_app_dir() -> str:
 
 
 def export_to_csv(folder_sizes: dict, file_sizes: dict, file_types: dict, root_path: str, filename: str = None):
-    """
-    Экспорт папок и файлов ТОЛЬКО из корня сканирования.
-    Формат:
-    Папка;Размер
-    Файл;Размер
-    Тип;Размер
-    """
     if filename is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"disk_analysis_{timestamp}.csv"

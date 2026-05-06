@@ -4,7 +4,6 @@ from collections import defaultdict
 
 
 class DiskScanner:
-    """Рекурсивный сканер диска с многопоточностью"""
 
     def __init__(self):
         self._stop_flag = threading.Event()
@@ -45,7 +44,6 @@ class DiskScanner:
         return "прочее"
 
     def _count_items(self, path: str) -> int:
-        """Быстрый подсчёт количества элементов (без stat)"""
         count = 0
         try:
             with os.scandir(path) as entries:

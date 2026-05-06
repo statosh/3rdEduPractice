@@ -3,10 +3,19 @@ import tkinter.filedialog as fd
 import tkinter.ttk as ttk
 import tkinter as tk
 import tkinter.font as tkfont
+import sys
 import os
+import threading
+import pystray
+from PIL import Image, ImageDraw
 from scanner import DiskScanner
 from chart import build_pie_chart_from_dict
 from export import export_to_csv
+
+if getattr(sys, 'frozen', False):
+    base_dir = sys._MEIPASS
+else:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def format_size(size_bytes: int) -> str:
@@ -92,11 +101,6 @@ class CustomContextMenu(ctk.CTkToplevel):
 
 
 class ToolTip:
-    """
-    Простая всплывающая подсказка для любого виджета.
-    Принимает функцию textfunc, которая должна возвращать строку или None.
-    """
-
     def __init__(self, widget, textfunc, delay=500):
         self.widget = widget
         self.textfunc = textfunc
@@ -276,7 +280,8 @@ class DiskAnalyzerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Диск-анализатор")
+        self.title("A-One Disk Analyser")
+        self.iconbitmap(os.path.join(base_dir, "image/icon.ico"))
         self.geometry("1200x800")
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
@@ -292,8 +297,44 @@ class DiskAnalyzerApp(ctk.CTk):
         self.tree_cache = {}
         self._closing = False
 
+        self.tray_icon = None
+        self._create_tray_icon()
+
         self._build_ui()
-        self.protocol("WM_DELETE_WINDOW", self._on_close)
+        self.protocol("WM_DELETE_WINDOW", self._minimize_to_tray)
+
+    def _create_tray_icon(self):
+        icon_path = os.path.join(base_dir, "image/icon.ico")
+        try:
+            image = Image.open(icon_path)
+        except Exception:
+            image = Image.new('RGBA', (32, 32), (79, 195, 247, 255))
+            draw = ImageDraw.Draw(image)
+            draw.rectangle([8, 8, 24, 24], fill=(79, 195, 247, 255))
+
+        menu = pystray.Menu(
+            pystray.MenuItem("Открыть", self._restore_from_tray, default=True),
+            pystray.MenuItem("Закрыть", self._quit_from_tray)
+        )
+
+        self.tray_icon = pystray.Icon(
+            "diskanalyzer", image, "A-One Disk Analyser", menu)
+        self._tray_thread = threading.Thread(
+            target=self.tray_icon.run, daemon=True)
+        self._tray_thread.start()
+
+    def _restore_from_tray(self, icon=None, item=None):
+        self.after(0, self.deiconify)
+        self.after(0, self.lift)
+        self.after(0, self.focus_force)
+
+    def _quit_from_tray(self, icon=None, item=None):
+        if self.tray_icon:
+            self.tray_icon.stop()
+        self._on_close()
+
+    def _minimize_to_tray(self):
+        self.withdraw()
 
     def _build_ui(self):
         self.top_frame = ctk.CTkFrame(self)
@@ -926,6 +967,12 @@ class DiskAnalyzerApp(ctk.CTk):
                         window.destroy()
                 except Exception:
                     pass
+
+        if self.tray_icon:
+            try:
+                self.tray_icon.stop()
+            except Exception:
+                pass
 
         try:
             for task in self.tk.call('after', 'info'):
