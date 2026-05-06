@@ -68,6 +68,7 @@ class CustomContextMenu(ctk.CTkToplevel):
             return
 
         self._active = False
+        self.parent.unbind_all("<Button-1>")
         self.withdraw()
 
     def _on_click(self):
@@ -185,9 +186,17 @@ class ProgressWindow(ctk.CTkToplevel):
         self.cancel_btn.pack(pady=(0, 10))
 
         self.protocol("WM_DELETE_WINDOW", self._cancel)
+        self.bind("<Destroy>", self._on_destroy)
 
         self.scanner.progress_callback = self._update_progress
         self.scanner.done_callback = self._on_scan_done
+
+    def _revert_withdraw_after_windows_set_titlebar_color(self):
+        if self.winfo_exists():
+            try:
+                super()._revert_withdraw_after_windows_set_titlebar_color()
+            except Exception:
+                pass
 
     def _update_progress(self, current, total):
         if self._cancelled or not self.winfo_exists():
@@ -228,6 +237,11 @@ class ProgressWindow(ctk.CTkToplevel):
         self._cancelled = True
         self.scanner.stop()
         self.scanner.done_callback = None
+        try:
+            for task in self.tk.call('after', 'info'):
+                self.after_cancel(task)
+        except Exception:
+            pass
         if self.on_complete:
             self.parent.after(0, lambda: self.on_complete({}, {}, {}))
         self._cleanup_and_destroy()
@@ -236,6 +250,11 @@ class ProgressWindow(ctk.CTkToplevel):
         self.scanner.progress_callback = None
         self.scanner.done_callback = None
         self.withdraw()
+        try:
+            for task in self.tk.call('after', 'info'):
+                self.after_cancel(task)
+        except Exception:
+            pass
         self.update_idletasks()
         if self.winfo_exists():
             try:
@@ -246,6 +265,11 @@ class ProgressWindow(ctk.CTkToplevel):
                 self.destroy()
             except Exception:
                 pass
+
+    def _on_destroy(self, event):
+        if event.widget == self:
+            self.scanner.progress_callback = None
+            self.scanner.done_callback = None
 
 
 class DiskAnalyzerApp(ctk.CTk):
@@ -295,8 +319,25 @@ class DiskAnalyzerApp(ctk.CTk):
             self.top_frame, text="Готов", text_color="gray")
         self.status_label.pack(side="right", padx=10)
 
+        self.types_frame = ctk.CTkFrame(self)
+        self.types_frame.pack(fill="x", padx=10, pady=(5, 10), side="bottom")
+
+        self.types_label = ctk.CTkLabel(
+            self.types_frame,
+            text="По типам файлов:",
+            font=("Segoe UI", 12, "bold")
+        )
+        self.types_label.pack(side="left", padx=10, pady=5)
+
+        self.types_text = ctk.CTkLabel(
+            self.types_frame,
+            text="Ожидание сканирования...",
+            font=("Consolas", 11)
+        )
+        self.types_text.pack(side="left", padx=10, pady=5)
+
         self.main_frame = ctk.CTkFrame(self)
-        self.main_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+        self.main_frame.pack(fill="both", expand=True, padx=10, pady=(0, 0))
 
         self.paned = tk.PanedWindow(
             self.main_frame,
@@ -440,23 +481,6 @@ class DiskAnalyzerApp(ctk.CTk):
         self.paned.add(self.left_wrapper, minsize=300)
         self.paned.add(self.right_wrapper, minsize=300)
 
-        self.types_frame = ctk.CTkFrame(self)
-        self.types_frame.pack(fill="x", padx=10, pady=(0, 10), side="bottom")
-
-        self.types_label = ctk.CTkLabel(
-            self.types_frame,
-            text="По типам файлов:",
-            font=("Segoe UI", 12, "bold")
-        )
-        self.types_label.pack(side="left", padx=10, pady=5)
-
-        self.types_text = ctk.CTkLabel(
-            self.types_frame,
-            text="Ожидание сканирования...",
-            font=("Consolas", 11)
-        )
-        self.types_text.pack(side="left", padx=10, pady=5)
-
     def _refresh_path_display(self):
         path = self.full_selected_path
         if path:
@@ -474,6 +498,18 @@ class DiskAnalyzerApp(ctk.CTk):
     def _start_scan(self):
         if not self.selected_path:
             return
+
+        if hasattr(self, 'progress_window') and self.progress_window:
+            try:
+                self.progress_window._cancel()
+            except Exception:
+                pass
+            try:
+                if self.progress_window.winfo_exists():
+                    self.progress_window.destroy()
+            except Exception:
+                pass
+            self.update_idletasks()
 
         self.scan_btn.configure(state="disabled")
         self.browse_btn.configure(state="disabled")
@@ -703,7 +739,7 @@ class DiskAnalyzerApp(ctk.CTk):
             return path
 
         parts = path.split(os.sep)
-        if len(parts) <= 3:
+        if len(parts) <= 2:
             return path
 
         def build(l, r):
@@ -870,9 +906,10 @@ class DiskAnalyzerApp(ctk.CTk):
         if not self.folder_sizes:
             return
 
-        filepath = export_to_csv(self.folder_sizes, self.file_types)
-        self.status_label.configure(
-            text=f"Сохранено: {os.path.basename(filepath)}", text_color="#2ecc71")
+        filepath = export_to_csv(
+            self.folder_sizes, self.file_sizes, self.file_types, self.selected_path)
+        self.status_label.configure(text=f"Сохранено: {os.path.basename(filepath)}",
+                                    text_color="#2ecc71")
 
     def _on_close(self):
         if self._closing:
@@ -903,17 +940,6 @@ class DiskAnalyzerApp(ctk.CTk):
 
         os._exit(0)
 
-
-def report_callback_exception(exc, val, tb):
-    msg = str(val)
-    if "application has been destroyed" in msg or "invalid command name" in msg or "can't delete Tcl command" in msg:
-        return
-    import traceback
-    traceback.print_exception(exc, val, tb)
-
-
-tk.Tk.report_callback_exception = report_callback_exception
-tk.Toplevel.report_callback_exception = report_callback_exception
 
 if __name__ == "__main__":
     app = DiskAnalyzerApp()

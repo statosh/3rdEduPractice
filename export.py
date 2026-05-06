@@ -21,7 +21,14 @@ def get_app_dir() -> str:
         return os.path.dirname(os.path.abspath(__file__))
 
 
-def export_to_csv(folder_sizes: dict, file_types: dict, filename: str = None):
+def export_to_csv(folder_sizes: dict, file_sizes: dict, file_types: dict, root_path: str, filename: str = None):
+    """
+    Экспорт папок и файлов ТОЛЬКО из корня сканирования.
+    Формат:
+    Папка;Размер
+    Файл;Размер
+    Тип;Размер
+    """
     if filename is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"disk_analysis_{timestamp}.csv"
@@ -29,19 +36,39 @@ def export_to_csv(folder_sizes: dict, file_types: dict, filename: str = None):
     save_dir = get_app_dir()
     filepath = os.path.join(save_dir, filename)
 
-    sorted_folders = sorted(folder_sizes.items(),
-                            key=lambda x: x[1], reverse=True)[:10]
+    root_norm = os.path.normpath(root_path)
+
+    root_folders = {}
+    for path, size in folder_sizes.items():
+        path_norm = os.path.normpath(path)
+        parent = os.path.normpath(os.path.dirname(path_norm))
+        if parent == root_norm:
+            root_folders[path] = size
+
+    root_files = {}
+    for path, size in file_sizes.items():
+        path_norm = os.path.normpath(path)
+        parent = os.path.normpath(os.path.dirname(path_norm))
+        if parent == root_norm:
+            root_files[path] = size
 
     with open(filepath, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f, delimiter=";")
 
-        writer.writerow(["Топ-10 папок по размеру"])
         writer.writerow(["Папка", "Размер (байт)", "Размер"])
-        for path, size in sorted_folders:
-            writer.writerow([path, size, format_size(size)])
+        for path, size in sorted(root_folders.items(), key=lambda x: x[1], reverse=True):
+            name = os.path.basename(path) if os.path.basename(path) else path
+            writer.writerow([name, size, format_size(size)])
 
         writer.writerow([])
-        writer.writerow(["Распределение по типам файлов"])
+
+        writer.writerow(["Файл", "Размер (байт)", "Размер"])
+        for path, size in sorted(root_files.items(), key=lambda x: x[1], reverse=True):
+            name = os.path.basename(path) if os.path.basename(path) else path
+            writer.writerow([name, size, format_size(size)])
+
+        writer.writerow([])
+
         writer.writerow(["Тип", "Размер (байт)", "Размер"])
         for ftype, size in file_types.items():
             writer.writerow([ftype, size, format_size(size)])
