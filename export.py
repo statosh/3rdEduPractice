@@ -29,7 +29,8 @@ def export_to_csv(folder_sizes: dict, file_types: dict, filename: str = None):
     save_dir = get_app_dir()
     filepath = os.path.join(save_dir, filename)
 
-    sorted_folders = sorted(folder_sizes.items(), key=lambda x: x[1], reverse=True)[:10]
+    sorted_folders = sorted(folder_sizes.items(),
+                            key=lambda x: x[1], reverse=True)[:10]
 
     with open(filepath, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f, delimiter=";")

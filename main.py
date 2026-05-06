@@ -2,6 +2,7 @@ import customtkinter as ctk
 import tkinter.filedialog as fd
 import tkinter.ttk as ttk
 import tkinter as tk
+import tkinter.font as tkfont
 import os
 from scanner import DiskScanner
 from chart import build_pie_chart_from_dict
@@ -28,10 +29,12 @@ class CustomContextMenu(ctk.CTkToplevel):
         self._active = False
         self._id = str(self)
 
-        self.border_frame = ctk.CTkFrame(self, corner_radius=0, fg_color="#555555")
+        self.border_frame = ctk.CTkFrame(
+            self, corner_radius=0, fg_color="#555555")
         self.border_frame.pack(padx=0, pady=0)
 
-        self.inner_frame = ctk.CTkFrame(self.border_frame, corner_radius=0, fg_color="#2b2b2b")
+        self.inner_frame = ctk.CTkFrame(
+            self.border_frame, corner_radius=0, fg_color="#2b2b2b")
         self.inner_frame.pack(padx=1, pady=1)
 
         self.btn = ctk.CTkButton(
@@ -87,6 +90,63 @@ class CustomContextMenu(ctk.CTkToplevel):
         self.hide()
 
 
+class ToolTip:
+    """
+    Простая всплывающая подсказка для любого виджета.
+    Принимает функцию textfunc, которая должна возвращать строку или None.
+    """
+
+    def __init__(self, widget, textfunc, delay=500):
+        self.widget = widget
+        self.textfunc = textfunc
+        self.delay = delay
+        self.tipwindow = None
+        self.id = None
+        widget.bind('<Enter>', self.enter)
+        widget.bind('<Leave>', self.leave)
+
+    def enter(self, event=None):
+        self.schedule()
+
+    def leave(self, event=None):
+        self.unschedule()
+        self.hidetip()
+
+    def schedule(self):
+        self.unschedule()
+        self.id = self.widget.after(self.delay, self.showtip)
+
+    def unschedule(self):
+        id_ = self.id
+        self.id = None
+        if id_:
+            self.widget.after_cancel(id_)
+
+    def showtip(self):
+        text = self.textfunc()
+        if not text:
+            return
+        self.hidetip()
+        self.tipwindow = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(True)
+        tw.wm_geometry("+%d+%d" % (
+            self.widget.winfo_rootx() + 10,
+            self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+        ))
+        label = tk.Label(
+            tw, text=text, justify=tk.LEFT,
+            background="#ffffe0", relief=tk.SOLID, borderwidth=1,
+            font=("Segoe UI", 10)
+        )
+        label.pack(ipadx=1)
+
+    def hidetip(self):
+        tw = self.tipwindow
+        self.tipwindow = None
+        if tw:
+            tw.destroy()
+
+
 class ProgressWindow(ctk.CTkToplevel):
     def __init__(self, parent, scanner, on_complete):
         super().__init__(parent)
@@ -96,7 +156,7 @@ class ProgressWindow(ctk.CTkToplevel):
         self._cancelled = False
 
         self.title("Сканирование...")
-        self.geometry("400x150")
+        self.geometry("400x180")
         self.resizable(False, False)
 
         self.transient(parent)
@@ -108,7 +168,8 @@ class ProgressWindow(ctk.CTkToplevel):
         y = parent.winfo_y() + (parent.winfo_height() - 150) // 2
         self.geometry(f"+{x}+{y}")
 
-        self.label = ctk.CTkLabel(self, text="Выполняется сканирование...", font=("Segoe UI", 14, "bold"))
+        self.label = ctk.CTkLabel(
+            self, text="Выполняется сканирование...", font=("Segoe UI", 14, "bold"))
         self.label.pack(pady=(20, 10))
 
         self.progress = ctk.CTkProgressBar(self, width=350)
@@ -116,10 +177,11 @@ class ProgressWindow(ctk.CTkToplevel):
         self.progress.set(0)
 
         self.percent_label = ctk.CTkLabel(
-            self, text="0% (0/0)", font=("Segoe UI", 12))
-        self.percent_label.pack(pady=(0, 5))
+            self, text=" 0% (0/0) ", font=("Segoe UI", 12))
+        self.percent_label.pack(pady=10)
 
-        self.cancel_btn = ctk.CTkButton(self, text="Отмена", command=self._cancel,  fg_color="#c0392b", hover_color="#e74c3c", width=100)
+        self.cancel_btn = ctk.CTkButton(
+            self, text="Отмена", command=self._cancel,  fg_color="#c0392b", hover_color="#e74c3c", width=100)
         self.cancel_btn.pack(pady=(0, 10))
 
         self.protocol("WM_DELETE_WINDOW", self._cancel)
@@ -143,7 +205,7 @@ class ProgressWindow(ctk.CTkToplevel):
         try:
             self.progress.set(fraction)
             self.percent_label.configure(
-                text=f"{percent}% ({current}/{total})")
+                text=f" {percent}% ({current}/{total}) ")
         except Exception:
             pass
 
@@ -201,6 +263,7 @@ class DiskAnalyzerApp(ctk.CTk):
         self.file_sizes = {}
         self.file_types = {}
         self.selected_path = None
+        self.full_selected_path = ""
 
         self.tree_cache = {}
         self._closing = False
@@ -212,16 +275,20 @@ class DiskAnalyzerApp(ctk.CTk):
         self.top_frame = ctk.CTkFrame(self)
         self.top_frame.pack(fill="x", padx=10, pady=10)
 
-        self.path_label = ctk.CTkLabel(self.top_frame, text="Папка: не выбрана", anchor="w", width=400)
+        self.path_label = ctk.CTkLabel(
+            self.top_frame, text="Папка: не выбрана", anchor="w", width=400)
         self.path_label.pack(side="left", padx=5)
 
-        self.browse_btn = ctk.CTkButton(self.top_frame, text="Обзор", command=self._browse_folder, width=80)
+        self.browse_btn = ctk.CTkButton(
+            self.top_frame, text="Обзор", command=self._browse_folder, width=80)
         self.browse_btn.pack(side="left", padx=5)
 
-        self.scan_btn = ctk.CTkButton(self.top_frame, text="Сканировать", command=self._start_scan, width=100, state="disabled")
+        self.scan_btn = ctk.CTkButton(
+            self.top_frame, text="Сканировать", command=self._start_scan, width=100, state="disabled")
         self.scan_btn.pack(side="left", padx=5)
 
-        self.export_btn = ctk.CTkButton(self.top_frame, text="Экспорт CSV", command=self._export_csv, width=100, state="disabled")
+        self.export_btn = ctk.CTkButton(
+            self.top_frame, text="Экспорт CSV", command=self._export_csv, width=100, state="disabled")
         self.export_btn.pack(side="left", padx=5)
 
         self.status_label = ctk.CTkLabel(
@@ -231,27 +298,70 @@ class DiskAnalyzerApp(ctk.CTk):
         self.main_frame = ctk.CTkFrame(self)
         self.main_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
-        self.left_frame = ctk.CTkFrame(self.main_frame)
-        self.left_frame.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        self.paned = tk.PanedWindow(
+            self.main_frame,
+            orient=tk.HORIZONTAL,
+            sashwidth=12,
+            bg="#242424"
+        )
+        self.paned.pack(fill="both", expand=True)
 
-        self.tree_label = ctk.CTkLabel(self.left_frame, text="Дерево папок и файлов:", font=("Segoe UI", 14, "bold"))
+        self.left_wrapper = ctk.CTkFrame(self.paned, fg_color="#242424")
+
+        self.left_frame = ctk.CTkFrame(
+            self.left_wrapper,
+            fg_color="#333333"
+        )
+        self.left_frame.pack(fill="both", expand=True, pady=2)
+
+        self.tree_label = ctk.CTkLabel(
+            self.left_frame,
+            text="Дерево папок и файлов:",
+            font=("Segoe UI", 14, "bold")
+        )
         self.tree_label.pack(anchor="w", padx=10, pady=5)
 
         self.path_info_frame = ctk.CTkFrame(self.left_frame)
         self.path_info_frame.pack(fill="x", padx=10, pady=(0, 5))
 
-        self.path_info_label = ctk.CTkLabel(self.path_info_frame, text="Путь: ", anchor="w", font=("Segoe UI", 10))
+        self.path_info_label = ctk.CTkLabel(
+            self.path_info_frame,
+            text="Путь: ",
+            anchor="w",
+            font=("Segoe UI", 12)
+        )
         self.path_info_label.pack(side="left", padx=(5, 0), pady=2)
 
-        self.path_info_value = ctk.CTkLabel(self.path_info_frame, text="", anchor="w", font=("Segoe UI", 10, "bold"), text_color="#4fc3f7")
+        self.path_info_value = ctk.CTkLabel(
+            self.path_info_frame,
+            text="",
+            anchor="w",
+            font=("Segoe UI", 12, "bold"),
+            text_color="#4fc3f7"
+        )
         self.path_info_value.pack(
             side="left", padx=5, pady=2, fill="x", expand=True)
 
-        self.copy_path_btn = ctk.CTkButton(self.path_info_frame, text="📋", command=self._copy_path_to_clipboard, width=30, height=30, font=("Segoe UI", 16))
+        self.path_tooltip = ToolTip(
+            self.path_info_value,
+            lambda: self.full_selected_path if self.full_selected_path else None
+        )
+
+        self.copy_path_btn = ctk.CTkButton(
+            self.path_info_frame,
+            text="📋",
+            command=self._copy_path_to_clipboard,
+            width=30,
+            height=30,
+            font=("Segoe UI", 16)
+        )
         self.copy_path_btn.pack(side="right", padx=5, pady=2)
 
+        self.bind("<Configure>", lambda e: self._refresh_path_display())
+
         self.tree_container = ctk.CTkFrame(self.left_frame)
-        self.tree_container.pack(fill="both", expand=True, padx=5, pady=(0, 5))
+        self.tree_container.pack(
+            fill="both", expand=True, padx=10, pady=(0, 10))
 
         style = ttk.Style()
         style.theme_use("default")
@@ -260,12 +370,19 @@ class DiskAnalyzerApp(ctk.CTk):
                         foreground="white",
                         fieldbackground="#2b2b2b",
                         rowheight=25,
-                        font=("Segoe UI", 10))
+                        font=("Segoe UI", 10),
+                        borderwidth=0)
         style.configure("Treeview.Heading",
-                        background="#1f1f1f",
+                        background="#2b2b2b",
                         foreground="white",
-                        font=("Segoe UI", 10, "bold"))
-        style.map("Treeview", background=[("selected", "#1a5fb4")], foreground=[("selected", "white")])
+                        font=("Segoe UI", 10, "bold"),
+                        borderwidth=1)
+        style.map("Treeview.Heading",
+                  background=[("active", "#2b2b2b")],
+                  foreground=[("active", "#ffffff")])
+        style.map("Treeview",
+                  background=[("selected", "#1a5fb4")],
+                  foreground=[("selected", "white")])
 
         self.tree = ttk.Treeview(
             self.tree_container,
@@ -273,12 +390,13 @@ class DiskAnalyzerApp(ctk.CTk):
             show="tree headings",
             selectmode="browse"
         )
+
         self.tree.heading("#0", text="Имя", anchor="w")
         self.tree.heading("size", text="Размер", anchor="e")
         self.tree.heading("percent", text="%", anchor="e")
 
-        self.tree.column("#0", width=400, minwidth=200)
-        self.tree.column("size", width=120, minwidth=80, anchor="e")
+        self.tree.column("#0", width=450, minwidth=200)
+        self.tree.column("size", width=80, minwidth=80, anchor="e")
         self.tree.column("percent", width=80, minwidth=60, anchor="e")
 
         self.tree.tag_configure("folder", foreground="#4fc3f7")
@@ -286,16 +404,10 @@ class DiskAnalyzerApp(ctk.CTk):
         self.tree.tag_configure("file", foreground="#a5d6a7")
 
         self.tree_scroll_y = ctk.CTkScrollbar(
-            self.tree_container, orientation="vertical")
+            self.tree_container, width=10, orientation="vertical")
         self.tree_scroll_y.pack(side="right", fill="y")
         self.tree.configure(yscrollcommand=self.tree_scroll_y.set)
         self.tree_scroll_y.configure(command=self.tree.yview)
-
-        self.tree_scroll_x = ctk.CTkScrollbar(
-            self.tree_container, orientation="horizontal")
-        self.tree_scroll_x.pack(side="bottom", fill="x")
-        self.tree.configure(xscrollcommand=self.tree_scroll_x.set)
-        self.tree_scroll_x.configure(command=self.tree.xview)
 
         self.tree.pack(fill="both", expand=True)
 
@@ -303,25 +415,54 @@ class DiskAnalyzerApp(ctk.CTk):
         self.tree.bind("<<TreeviewSelect>>", self._on_tree_select)
         self.tree.bind("<Button-3>", self._on_right_click)
 
-        self.context_menu = CustomContextMenu(self, command=self._open_file_location)
+        self.context_menu = CustomContextMenu(
+            self, command=self._open_file_location)
 
-        self.right_frame = ctk.CTkFrame(self.main_frame)
-        self.right_frame.pack(side="right", fill="both", expand=True, padx=(5, 0))
+        self.right_wrapper = ctk.CTkFrame(self.paned, fg_color="#242424")
 
-        self.chart_label = ctk.CTkLabel(self.right_frame, text="Круговая диаграмма:", font=("Segoe UI", 14, "bold"))
+        self.right_frame = ctk.CTkFrame(
+            self.right_wrapper,
+            fg_color="#333333"
+        )
+        self.right_frame.pack(fill="both", expand=True, pady=2)
+
+        self.chart_label = ctk.CTkLabel(
+            self.right_frame,
+            text="Круговая диаграмма:",
+            font=("Segoe UI", 14, "bold")
+        )
         self.chart_label.pack(anchor="w", padx=10, pady=5)
 
         self.chart_container = ctk.CTkFrame(self.right_frame)
-        self.chart_container.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+        self.chart_container.pack(
+            fill="both", expand=True, padx=10, pady=(0, 10))
+
+        self.paned.add(self.left_wrapper, minsize=300)
+        self.paned.add(self.right_wrapper, minsize=300)
 
         self.types_frame = ctk.CTkFrame(self)
-        self.types_frame.pack(fill="x", padx=10, pady=(0, 10))
+        self.types_frame.pack(fill="x", padx=10, pady=(0, 10), side="bottom")
 
-        self.types_label = ctk.CTkLabel(self.types_frame, text="По типам файлов:", font=("Segoe UI", 12, "bold"))
+        self.types_label = ctk.CTkLabel(
+            self.types_frame,
+            text="По типам файлов:",
+            font=("Segoe UI", 12, "bold")
+        )
         self.types_label.pack(side="left", padx=10, pady=5)
 
-        self.types_text = ctk.CTkLabel(self.types_frame, text="Ожидание сканирования...", font=("Consolas", 11))
+        self.types_text = ctk.CTkLabel(
+            self.types_frame,
+            text="Ожидание сканирования...",
+            font=("Consolas", 11)
+        )
         self.types_text.pack(side="left", padx=10, pady=5)
+
+    def _refresh_path_display(self):
+        path = self.full_selected_path
+        if path:
+            self.path_info_value.configure(
+                text=self.shorten_path_dynamic(path)
+            )
 
     def _browse_folder(self):
         folder = fd.askdirectory(title="Выберите папку или диск")
@@ -369,7 +510,8 @@ class DiskAnalyzerApp(ctk.CTk):
         self.status_label.configure(text="Готово", text_color="#2ecc71")
 
         if not self.folder_sizes and not self.file_sizes:
-            self.status_label.configure(text="Нет данных", text_color="#e74c3c")
+            self.status_label.configure(
+                text="Нет данных", text_color="#e74c3c")
             return
 
         root_norm = os.path.normpath(self.selected_path)
@@ -388,7 +530,8 @@ class DiskAnalyzerApp(ctk.CTk):
         if root_norm in self.tree_cache:
             self._populate_children("", root_norm, total_size)
         else:
-            self.tree.insert("", "end", text="Нет данных", values=("0 Б", "0%"))
+            self.tree.insert("", "end", text="Нет данных",
+                             values=("0 Б", "0%"))
 
         types_lines = []
         for ftype, size in self.file_types.items():
@@ -401,7 +544,8 @@ class DiskAnalyzerApp(ctk.CTk):
 
             chart_data = {}
             for path, size, etype in top8:
-                name = os.path.basename(path) if os.path.basename(path) else path
+                name = os.path.basename(
+                    path) if os.path.basename(path) else path
                 chart_data[f"📁 {name}"] = size
 
             other_size = total_size - sum(size for _, size, _ in top8)
@@ -414,7 +558,8 @@ class DiskAnalyzerApp(ctk.CTk):
             widget.destroy()
 
         if chart_data:
-            canvas = build_pie_chart_from_dict(self.chart_container, chart_data, scan_path=self.selected_path)
+            canvas = build_pie_chart_from_dict(
+                self.chart_container, chart_data, scan_path=self.selected_path)
             canvas.get_tk_widget().pack(fill="both", expand=True)
 
     def _build_tree_cache(self):
@@ -512,7 +657,8 @@ class DiskAnalyzerApp(ctk.CTk):
                     tags=("virtual_folder",)
                 )
 
-                self.tree.item(files_folder_id, tags=(virtual_path, "virtual_folder"))
+                self.tree.item(files_folder_id, tags=(
+                    virtual_path, "virtual_folder"))
 
                 self.tree.insert(files_folder_id, "end", text="загрузка...")
 
@@ -544,6 +690,65 @@ class DiskAnalyzerApp(ctk.CTk):
 
             self.tree.item(file_id, tags=(path, "file"))
 
+    def shorten_path_dynamic(self, path: str) -> str:
+        if not path:
+            return path
+
+        path = os.path.normpath(path)
+
+        font = tkfont.Font(font=self.path_info_value.cget("font"))
+        max_width = int(self.path_info_value.winfo_width() * 1.35)
+
+        if max_width <= 10:
+            return path
+
+        parts = path.split(os.sep)
+        if len(parts) <= 3:
+            return path
+
+        def build(l, r):
+            left_part = os.sep.join(l)
+            right_part = os.sep.join(r)
+
+            if l and r:
+                return f"{left_part}{os.sep}...{os.sep}{right_part}"
+            elif l:
+                return left_part
+            elif r:
+                return right_part
+            return ""
+
+        def fits(text: str) -> bool:
+            return font.measure(text) <= max_width
+
+        full = os.sep.join(parts)
+        if fits(full):
+            return full
+
+        left = 1
+        right = 1
+
+        best = build(parts[:left], parts[-right:])
+
+        while left + right < len(parts):
+            if left < len(parts) - right:
+                candidate = build(parts[:left + 1], parts[-right:])
+                if fits(candidate):
+                    left += 1
+                    best = candidate
+                    continue
+
+            if right < len(parts) - left:
+                candidate = build(parts[:left], parts[-(right + 1):])
+                if fits(candidate):
+                    right += 1
+                    best = candidate
+                    continue
+
+            break
+
+        return best
+
     def _on_tree_select(self, event):
         item_id = self.tree.focus()
         if not item_id:
@@ -560,10 +765,15 @@ class DiskAnalyzerApp(ctk.CTk):
 
         if item_type == "virtual_folder":
             real_path = path.rsplit(os.sep + "<файлы>", 1)[0]
-            self.path_info_value.configure(text=real_path)
+            self.full_selected_path = real_path
+            self.path_info_value.configure(
+                text=self.shorten_path_dynamic(real_path))
         elif item_type in ("folder", "file"):
-            self.path_info_value.configure(text=path)
+            self.full_selected_path = path
+            self.path_info_value.configure(
+                text=self.shorten_path_dynamic(path))
         else:
+            self.full_selected_path = ""
             self.path_info_value.configure(text="")
 
     def _on_right_click(self, event):
@@ -649,7 +859,7 @@ class DiskAnalyzerApp(ctk.CTk):
                 self._populate_files(item_id, path_norm, files_total_size)
 
     def _copy_path_to_clipboard(self):
-        path = self.path_info_value.cget("text")
+        path = self.full_selected_path
         if path:
             self.clipboard_clear()
             self.clipboard_append(path)
@@ -661,7 +871,8 @@ class DiskAnalyzerApp(ctk.CTk):
             return
 
         filepath = export_to_csv(self.folder_sizes, self.file_types)
-        self.status_label.configure(text=f"Сохранено: {os.path.basename(filepath)}", text_color="#2ecc71")
+        self.status_label.configure(
+            text=f"Сохранено: {os.path.basename(filepath)}", text_color="#2ecc71")
 
     def _on_close(self):
         if self._closing:

@@ -1,5 +1,6 @@
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as pe
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 
@@ -46,11 +47,25 @@ def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
         gridspec_kw={"height_ratios": [3, 1]}
     )
 
-    fig.patch.set_facecolor("#1e1e1e")
-    ax.set_facecolor("#1e1e1e")
-    ax_legend.set_facecolor("#1e1e1e")
+    bg = "#333333"
+    fig.patch.set_facecolor(bg)
+    ax.set_facecolor(bg)
+    ax_legend.set_facecolor(bg)
 
-    colors = plt.cm.Set3(range(len(labels)))
+    colors = [
+        "#4fc3f7",
+        "#81c784",
+        "#ffb74d",
+        "#ba68c8",
+        "#e57373",
+        "#64b5f6",
+        "#aed581",
+        "#ff8a65",
+        "#9575cd",
+        "#f06292",
+    ]
+
+    colors = colors[:len(labels)]
     percentages = [(s / total * 100) for s in sizes]
 
     def autopct_filter(pct):
@@ -70,6 +85,9 @@ def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
         autotext.set_fontsize(9)
         autotext.set_color("white")
         autotext.set_fontweight('bold')
+        autotext.set_path_effects([
+            pe.withStroke(linewidth=2, foreground='black')
+        ])
 
     legend_labels = []
     for label, size, pct in zip(clean_labels, sizes, percentages):
@@ -77,7 +95,7 @@ def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
 
     ax_legend.axis("off")
 
-    ax_legend.legend(
+    legend = ax_legend.legend(
         wedges,
         legend_labels,
         loc="center",
@@ -85,6 +103,12 @@ def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
         frameon=False,
         ncol=1
     )
+
+    for text in legend.get_texts():
+        text.set_color("white")
+        text.set_path_effects([
+            pe.withStroke(linewidth=2, foreground='black')
+        ])
 
     total_str = format_size(total)
 
@@ -94,7 +118,17 @@ def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
     else:
         title = f"Распределение места\n(всего: {total_str})"
 
-    ax.set_title(title, fontsize=11, fontweight='bold', color="white")
+    title_obj = ax.set_title(
+        title,
+        fontsize=11,
+        fontweight='bold',
+        color="white",
+        pad=10
+    )
+
+    title_obj.set_path_effects([
+        pe.withStroke(linewidth=2, foreground='black')
+    ])
 
     fig.tight_layout()
 
