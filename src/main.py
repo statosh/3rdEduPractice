@@ -281,7 +281,7 @@ class DiskAnalyzerApp(ctk.CTk):
         super().__init__()
 
         self.title("A-One Disk Analyser")
-        self.iconbitmap(os.path.join(base_dir, "image/icon.ico"))
+        self.iconbitmap(os.path.join(base_dir, "../img/icon.ico"))
         self.geometry("1200x800")
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
@@ -304,7 +304,7 @@ class DiskAnalyzerApp(ctk.CTk):
         self.protocol("WM_DELETE_WINDOW", self._minimize_to_tray)
 
     def _create_tray_icon(self):
-        icon_path = os.path.join(base_dir, "image/icon.ico")
+        icon_path = os.path.join(base_dir, "../img/icon.ico")
         try:
             image = Image.open(icon_path)
         except Exception:

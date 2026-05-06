@@ -1,11 +1,10 @@
 <div align="center">
 
-<img src="image/icon.png" width="200px">
+<img src="img/icon.png" width="200px">
 
 # 📁 A-One Disk Analyser
 
 [![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org) [![CustomTkinter](https://img.shields.io/badge/CustomTkinter-5.2.0-1f6aa5?style=for-the-badge)](https://customtkinter.tomschimansky.com) [![Matplotlib](https://img.shields.io/badge/Matplotlib-3.7+-11557C?style=for-the-badge&logo=python&logoColor=white)](https://matplotlib.org) [![Pillow](https://img.shields.io/badge/Pillow-10.0.0-232F3E?style=for-the-badge&logo=pillow&logoColor=white)](https://python-pillow.org) [![pystray](https://img.shields.io/badge/pystray-0.19.0-000000?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/moses-palmer/pystray) [![License](https://img.shields.io/badge/License-GPL%203.0-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/gpl-3.0)
-
 
 </div>
 
@@ -15,7 +14,7 @@
 
 Приложение имеет современный пользовательский интерфейс на основе `customtkinter`, поддерживает работу в режиме минимизации в системном трее и обеспечивает удобный просмотр структуры данных в древовидном представлении.
 
-<br>![preview](image/preview.png)
+<br>![preview](img/preview.png)
 
 ## ✨ Ключевые особенности
 
@@ -65,7 +64,7 @@ python -m venv venv
 
 **Содержимое `requirements.txt`:**
 
-```
+```txt
 customtkinter
 Pillow
 matplotlib
@@ -98,7 +97,7 @@ pip install pyinstaller
 
 ### 🏗️ Шаг 2: Сборка проекта
 
-Для корректной работы приложения при сборке вам необходимо убедиться, что в папке `image/` находится значок `icon.ico`, и все вспомогательные файлы (например, скрипты) доступны.
+Для корректной работы приложения при сборке вам необходимо убедиться, что в папке `img/` находится значок `icon.ico`, и все вспомогательные файлы (например, скрипты) доступны.
 
 Используйте следующую команду для создания одного файла-исполняемого файла:
 
