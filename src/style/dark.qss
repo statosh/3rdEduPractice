@@ -1,0 +1,145 @@
+QMainWindow {
+    background-color: #1e1e2e;
+    color: #cdd6f4;
+}
+
+QLabel {
+    color: #cdd6f4;
+    font-size: 13px;
+}
+
+QPushButton {
+    background-color: #89b4fa;
+    color: #1e1e2e;
+    border: 1px solid #74c7ec;
+    border-radius: 4px;
+    padding: 6px 16px;
+    font-size: 13px;
+    /* font-weight: bold; */
+}
+
+QPushButton:hover {
+    background-color: #74c7ec;
+}
+
+QPushButton:pressed {
+    background-color: #89dceb;
+}
+
+QPushButton:disabled {
+    background-color: #45475a;
+    color: #6c7086;
+    border: 1px solid #585b70;
+}
+
+QTreeWidget {
+    background-color: #1e1e2e;
+    color: #cdd6f4;
+    border: 1px solid #45475a;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+QTreeWidget::item {
+    padding: 4px 2px;
+    border-bottom: 1px solid #313244;
+}
+
+QTreeWidget::item:hover {
+    background-color: #313244;
+    color: #cdd6f4;
+}
+
+QTreeWidget::item:selected {
+    background-color: #89b4fa;
+    color: #1e1e2e;
+}
+
+QTreeWidget QHeaderView::section {
+    background-color: #313244;
+    color: #cdd6f4;
+    padding: 6px;
+    border: 1px solid #45475a;
+    border-radius: 0px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+QSplitter::handle {
+    background-color: transparent;
+    margin: 0px 2.5px;
+	border: 1px solid red;
+}
+
+QFrame#topFrame {
+    background-color: #181825;
+    border: 1px solid #313244;
+    border-radius: 6px;
+    padding: 8px;
+}
+
+QFrame#typesFrame {
+    background-color: #181825;
+    border: 1px solid #313244;
+    border-radius: 6px;
+    padding: 8px;
+}
+
+QWidget#leftPanel {
+    background-color: #1e1e2e;
+    border: 1px solid #313244;
+    border-radius: 6px;
+}
+
+QWidget#rightPanel {
+    background-color: #1e1e2e;
+    border: 1px solid #313244;
+    border-radius: 6px;
+}
+
+QProgressDialog {
+    background-color: #1e1e2e;
+    color: #cdd6f4;
+}
+
+QProgressDialog QLabel {
+    color: #cdd6f4;
+    font-size: 13px;
+}
+
+QProgressBar {
+    border: 1px solid #45475a;
+    border-radius: 4px;
+    background-color: #313244;
+    text-align: center;
+    color: #cdd6f4;
+    font-size: 12px;
+}
+
+QProgressBar::chunk {
+    background-color: #89b4fa;
+    border-radius: 3px;
+}
+
+QMenu {
+    background-color: #1e1e2e;
+    color: #cdd6f4;
+    border: 1px solid #45475a;
+    padding: 4px;
+}
+
+QMenu::item {
+    padding: 6px 24px;
+    border-radius: 4px;
+}
+
+QMenu::item:selected {
+    background-color: #313244;
+    color: #cdd6f4;
+}
+
+QMenu::separator {
+    height: 1px;
+    background-color: #45475a;
+    margin: 4px 8px;
+}

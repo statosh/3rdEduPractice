@@ -1,10 +1,10 @@
 import matplotlib
+matplotlib.use('QtAgg')
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
 import os
-
-matplotlib.use("TkAgg")
 
 
 def format_size(size_bytes: int) -> str:
@@ -17,7 +17,8 @@ def format_size(size_bytes: int) -> str:
     return f"{size_bytes} Б"
 
 
-def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
+def build_pie_chart(parent_widget, data: dict, scan_path: str = ""):
+    """Создаёт круговую диаграмму и возвращает canvas для встраивания в Qt"""
     plt.clf()
     plt.close('all')
 
@@ -29,10 +30,10 @@ def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
 
     clean_labels = []
     for label in labels:
-        clean = label.replace("📁 ", "").replace(
-            "📄 ", "").replace("📁", "").replace("📄", "")
+        clean = label.replace("📁 ", "").replace("📄 ", "").replace("📁", "").replace("📄", "")
         clean_labels.append(clean)
 
+    # Сортировка по размеру
     paired = list(zip(labels, clean_labels, sizes))
     paired.sort(key=lambda x: x[2], reverse=True)
 
@@ -40,29 +41,20 @@ def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
     clean_labels = [p[1] for p in paired]
     sizes = [p[2] for p in paired]
 
-    fig, (ax, ax_legend) = plt.subplots(
-        2, 1,
-        figsize=(6, 7),
-        dpi=100,
-        gridspec_kw={"height_ratios": [3, 1]}
-    )
+    # Создание фигуры с двумя subplot'ами
+    fig = Figure(figsize=(6, 7), dpi=100)
+    fig.patch.set_facecolor("#333333")
 
-    bg = "#333333"
-    fig.patch.set_facecolor(bg)
-    ax.set_facecolor(bg)
-    ax_legend.set_facecolor(bg)
+    gs = fig.add_gridspec(2, 1, height_ratios=[3, 1])
+    ax = fig.add_subplot(gs[0])
+    ax_legend = fig.add_subplot(gs[1])
+
+    ax.set_facecolor("#333333")
+    ax_legend.set_facecolor("#333333")
 
     colors = [
-        "#4fc3f7",
-        "#81c784",
-        "#ffb74d",
-        "#ba68c8",
-        "#e57373",
-        "#64b5f6",
-        "#aed581",
-        "#ff8a65",
-        "#9575cd",
-        "#f06292",
+        "#4fc3f7", "#81c784", "#ffb74d", "#ba68c8", "#e57373",
+        "#64b5f6", "#aed581", "#ff8a65", "#9575cd", "#f06292",
     ]
 
     colors = colors[:len(labels)]
@@ -89,6 +81,7 @@ def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
             pe.withStroke(linewidth=2, foreground='black')
         ])
 
+    # Легенда
     legend_labels = []
     for label, size, pct in zip(clean_labels, sizes, percentages):
         legend_labels.append(f"{label} ({format_size(size)}) — {pct:.1f}%")
@@ -110,6 +103,7 @@ def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
             pe.withStroke(linewidth=2, foreground='black')
         ])
 
+    # Заголовок
     total_str = format_size(total)
 
     if scan_path:
@@ -132,6 +126,6 @@ def build_pie_chart_from_dict(parent_frame, data: dict, scan_path: str = ""):
 
     fig.tight_layout()
 
-    canvas = FigureCanvasTkAgg(fig, master=parent_frame)
-    canvas.draw()
+    canvas = FigureCanvasQTAgg(fig)
+    canvas.setParent(parent_widget)
     return canvas
