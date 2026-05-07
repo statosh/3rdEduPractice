@@ -283,6 +283,7 @@ class DiskAnalyzerApp(ctk.CTk):
         self.title("A-One Disk Analyser")
         self.iconbitmap(os.path.join(base_dir, "../img/icon.ico"))
         self.geometry("1200x800")
+        self.minsize(800,670)
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
 
