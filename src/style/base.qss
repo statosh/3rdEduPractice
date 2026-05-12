@@ -67,7 +67,6 @@ QTreeWidget QHeaderView::section {
 QSplitter::handle {
     background-color: transparent;
     margin: 0px 2.5px;
-	border: 1px solid red;
 }
 
 QFrame#topFrame {
