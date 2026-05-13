@@ -1,3 +1,9 @@
+import signal
+from export import export_to_csv
+from chart import build_pie_chart
+from scanner import DiskScanner
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 import sys
 import os
 import threading
@@ -10,26 +16,21 @@ from PySide6.QtWidgets import (
     QStyle, QSizePolicy, QSystemTrayIcon, QMessageBox
 )
 from PySide6.QtCore import (
-    Qt, QTimer, Signal, QObject, QThread, QSize, QFile, QIODevice
+    Qt, QTimer, Signal, QObject, QThread, QSize, QFile, QIODevice, QEvent
 )
-from PySide6.QtGui import QAction, QIcon, QFont, QClipboard, QPalette, QColor
+from PySide6.QtGui import QAction, QIcon, QFont, QClipboard, QPalette, QColor, QBrush
 from PySide6.QtUiTools import QUiLoader
 
 import matplotlib
 matplotlib.use('QtAgg')
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
 
-from scanner import DiskScanner
-from chart import build_pie_chart
-from export import export_to_csv
-
-import signal
 
 if getattr(sys, 'frozen', False):
     base_dir = sys._MEIPASS
 else:
     base_dir = os.path.dirname(os.path.abspath(__file__))
+
+DEFAULT_SCAN_PATH = "C:\\"
 
 
 def format_size(size_bytes: int) -> str:
@@ -68,7 +69,8 @@ class ScannerWorker(QObject):
         self.scanner.reset()
         self.scanner.progress_callback = self._on_progress
         self.scanner.done_callback = self._on_done
-        thread = threading.Thread(target=self._scan_thread, args=(path,), daemon=True)
+        thread = threading.Thread(
+            target=self._scan_thread, args=(path,), daemon=True)
         thread.start()
 
     def _scan_thread(self, path):
@@ -115,7 +117,7 @@ class DiskAnalyzerApp(QMainWindow):
         self.folder_sizes = {}
         self.file_sizes = {}
         self.file_types = {}
-        self.selected_path = None
+        self.selected_path = DEFAULT_SCAN_PATH
         self.full_selected_path = ""
         self.tree_cache = {}
         self.progress_dialog = None
@@ -132,8 +134,49 @@ class DiskAnalyzerApp(QMainWindow):
         self._path_update_timer.setSingleShot(True)
         self._path_update_timer.timeout.connect(self._refresh_path_display)
 
-        self.current_theme = "base"
+        self.current_theme = "light"
         self._load_theme("base")
+        self._load_theme("light")
+
+        self._update_path_label()
+
+    def _update_path_label(self):
+        if self.selected_path:
+            shortened = self._shorten_path_for_label(self.selected_path)
+            self.pathLabel.setText(f"Папка: {shortened}")
+        self.scanButton.setEnabled(True)
+
+    def _shorten_path_for_label(self, path: str) -> str:
+        if not path:
+            return path
+
+        path = os.path.normpath(path)
+        font_metrics = self.pathLabel.fontMetrics()
+        prefix = "Папка: "
+        max_width = self.pathLabel.width() - font_metrics.horizontalAdvance(prefix) - 10
+
+        if max_width <= 0:
+            return path
+
+        if font_metrics.horizontalAdvance(path) <= max_width:
+            return path
+
+        parts = path.split(os.sep)
+        if len(parts) <= 2:
+            return path
+
+        best = f"{parts[0]}{os.sep}...{os.sep}{parts[-1]}"
+        left, right = 1, 1
+
+        while left + right < len(parts):
+            test = f"{os.sep.join(parts[:left+1])}{os.sep}...{os.sep}{os.sep.join(parts[-right:])}"
+            if font_metrics.horizontalAdvance(test) <= max_width:
+                best = test
+                left += 1
+            else:
+                break
+
+        return best
 
     def _load_ui(self):
         ui_file_path = os.path.join(base_dir, "ui", "main_window.ui")
@@ -166,6 +209,7 @@ class DiskAnalyzerApp(QMainWindow):
             self.chartContainer = self.findChild(QWidget, "chartContainer")
             self.typesTextLabel = self.findChild(QLabel, "typesTextLabel")
             self.splitter = self.findChild(QSplitter, "splitter")
+            self.leftPanel = self.findChild(QWidget, "leftPanel")
 
             if self.chartContainer:
                 self.chartLayout = self.chartContainer.layout()
@@ -187,6 +231,15 @@ class DiskAnalyzerApp(QMainWindow):
             self.treeWidget.setRootIsDecorated(True)
             self.treeWidget.setAnimated(True)
             self.treeWidget.setExpandsOnDoubleClick(True)
+            self.treeWidget.setRootIsDecorated(False)
+
+            header = self.treeWidget.header()
+            header.setStretchLastSection(False)
+            header.setSectionResizeMode(0, QHeaderView.Stretch)
+            header.setSectionResizeMode(1, QHeaderView.Fixed)
+            header.setSectionResizeMode(2, QHeaderView.Fixed)
+            header.resizeSection(1, 80)
+            header.resizeSection(2, 80)
 
         self._apply_panel_styles()
 
@@ -215,25 +268,68 @@ class DiskAnalyzerApp(QMainWindow):
             self.themeButton.clicked.connect(self._toggle_theme)
 
         if self.treeWidget:
-            self.treeWidget.customContextMenuRequested.connect(self._show_context_menu)
+            self.treeWidget.customContextMenuRequested.connect(
+                self._show_context_menu)
             self.treeWidget.itemExpanded.connect(self._on_tree_expanded)
-            self.treeWidget.currentItemChanged.connect(self._on_tree_selection_changed)
+            self.treeWidget.itemCollapsed.connect(self._on_tree_collapsed)
+            self.treeWidget.currentItemChanged.connect(
+                self._on_tree_selection_changed)
 
         if self.copyPathButton:
             self.copyPathButton.clicked.connect(self._copy_path_to_clipboard)
+
+        if self.pathInfoValue:
+            self.pathInfoValue.installEventFilter(self)
+
+        if self.leftPanel:
+            self.leftPanel.installEventFilter(self)
+
+        if self.pathLabel:
+            self.pathLabel.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if obj == self.pathInfoValue and event.type() == QEvent.Resize:
+            self._refresh_path_display()
+        elif obj == self.leftPanel and event.type() == QEvent.Resize:
+            self._refresh_path_display()
+        elif obj == self.pathLabel and event.type() == QEvent.Resize:
+            self._update_path_label()
+        return super().eventFilter(obj, event)
 
     def _load_theme(self, theme_name):
         theme_file = os.path.join(base_dir, "style", f"{theme_name}.qss")
         if os.path.exists(theme_file):
             with open(theme_file, "r", encoding="utf-8") as f:
-                self.setStyleSheet(f.read())
+                style_sheet = f.read()
+                if theme_name == "base":
+                    self.base_style = style_sheet
+                    self.setStyleSheet(self.base_style)
+                else:
+                    current_base = getattr(self, 'base_style', '')
+                    self.setStyleSheet(current_base + style_sheet)
 
     def _toggle_theme(self):
-        if self.current_theme == "base":
+        if self.current_theme == "light":
             self.current_theme = "dark"
         else:
-            self.current_theme = "base"
+            self.current_theme = "light"
         self._load_theme(self.current_theme)
+        self._refresh_chart_theme()
+
+    def _refresh_chart_theme(self):
+        if not self.folder_sizes and not self.file_types:
+            return
+
+        root_norm = os.path.normpath(
+            self.selected_path) if self.selected_path else ""
+        total_size = self.folder_sizes.get(self.selected_path, 0)
+        if total_size == 0 and root_norm:
+            total_size = self.folder_sizes.get(root_norm, 0)
+        if total_size == 0:
+            total_size = sum(self.file_types.values())
+
+        if total_size > 0 and hasattr(self, 'selected_path') and self.selected_path:
+            self._build_chart(root_norm, total_size)
 
     def _create_tray_icon(self):
         if not QSystemTrayIcon.isSystemTrayAvailable():
@@ -303,10 +399,11 @@ class DiskAnalyzerApp(QMainWindow):
             self.progress_dialog.close()
 
     def _browse_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Выберите папку или диск")
+        folder = QFileDialog.getExistingDirectory(
+            self, "Выберите папку или диск")
         if folder:
-            self.pathLabel.setText(f"Папка: {folder}")
             self.selected_path = folder
+            self._update_path_label()
             self.scanButton.setEnabled(True)
 
     def _start_scan(self):
@@ -333,6 +430,10 @@ class DiskAnalyzerApp(QMainWindow):
         self.progress_dialog.setWindowModality(Qt.WindowModal)
         self.progress_dialog.setMinimumDuration(0)
         self.progress_dialog.canceled.connect(self._cancel_scan)
+        self.progress_dialog.setFixedHeight(125)
+        self.progress_dialog.setMinimumWidth(275)
+        self.progress_dialog.setMaximumWidth(500)
+        self.progress_dialog.adjustSize()
         self.progress_dialog.show()
 
         self.worker.scan(self.selected_path)
@@ -346,6 +447,8 @@ class DiskAnalyzerApp(QMainWindow):
         self.exportButton.setEnabled(True)
 
     def _update_progress(self, current, total):
+        if self.progress_dialog is None:
+            return
         if self.progress_dialog and total > 0:
             self.progress_dialog.setMaximum(total)
             self.progress_dialog.setValue(current)
@@ -426,8 +529,21 @@ class DiskAnalyzerApp(QMainWindow):
             self.tree_cache[parent]["files"].append(entry)
 
         for parent in self.tree_cache:
-            self.tree_cache[parent]["folders"].sort(key=lambda x: x[1], reverse=True)
-            self.tree_cache[parent]["files"].sort(key=lambda x: x[1], reverse=True)
+            self.tree_cache[parent]["folders"].sort(
+                key=lambda x: x[1], reverse=True)
+            self.tree_cache[parent]["files"].sort(
+                key=lambda x: x[1], reverse=True)
+
+    def _set_item_color(self, item, item_type):
+        if item_type == "folder":
+            color = QColor(0, 120, 215)
+        elif item_type in ("virtual_folder", "file"):
+            color = QColor(255, 140, 0)
+        else:
+            return
+
+        for col in range(item.columnCount()):
+            item.setForeground(col, QBrush(color))
 
     def _populate_tree(self, root_norm, total_size):
         if root_norm in self.tree_cache:
@@ -467,7 +583,8 @@ class DiskAnalyzerApp(QMainWindow):
 
             if entry_type == "folder":
                 path, _, _ = data
-                name = os.path.basename(path) if os.path.basename(path) else path
+                name = os.path.basename(
+                    path) if os.path.basename(path) else path
                 path_norm = os.path.normpath(path)
 
                 if parent_item:
@@ -476,10 +593,11 @@ class DiskAnalyzerApp(QMainWindow):
                     item = TreeWidgetItem(path_norm, "folder")
                     self.treeWidget.addTopLevelItem(item)
 
-                item.setText(0, f"📁 {name}")
+                item.setText(0, f"＋ 📁 {name}")
                 item.setText(1, format_size(size))
                 item.setText(2, percent_str)
                 item.setToolTip(0, path)
+                self._set_item_color(item, "folder")
 
                 if path_norm in self.tree_cache:
                     dummy = QTreeWidgetItem(item)
@@ -490,20 +608,30 @@ class DiskAnalyzerApp(QMainWindow):
                 virtual_path = parent_path_norm + os.sep + "<файлы>"
 
                 if parent_item:
-                    item = TreeWidgetItem(virtual_path, "virtual_folder", parent_item)
+                    item = TreeWidgetItem(
+                        virtual_path, "virtual_folder", parent_item)
                 else:
                     item = TreeWidgetItem(virtual_path, "virtual_folder")
                     self.treeWidget.addTopLevelItem(item)
 
-                item.setText(0, f"📁 <файлы> ({len(files_list)} шт.)")
+                item.setText(0, f"＋ 📁 <файлы> ({len(files_list)} шт.)")
                 item.setText(1, format_size(size))
                 item.setText(2, percent_str)
+                self._set_item_color(item, "virtual_folder")
 
                 dummy = QTreeWidgetItem(item)
                 dummy.setText(0, "Загрузка...")
 
     def _on_tree_expanded(self, item):
-        if not isinstance(item, TreeWidgetItem) or item.is_loaded():
+        if not isinstance(item, TreeWidgetItem):
+            return
+
+        text = item.text(0)
+        if text.startswith("＋ "):
+            text = text.replace("＋ ", "－ ", 1)
+            item.setText(0, text)
+
+        if item.is_loaded():
             return
 
         while item.childCount() > 0:
@@ -526,16 +654,28 @@ class DiskAnalyzerApp(QMainWindow):
                 files_total_size = sum(size for _, size, _ in files)
 
                 for path, size, etype in files:
-                    name = os.path.basename(path) if os.path.basename(path) else path
-                    percent = (size / files_total_size * 100) if files_total_size > 0 else 0
+                    name = os.path.basename(
+                        path) if os.path.basename(path) else path
+                    percent = (size / files_total_size *
+                               100) if files_total_size > 0 else 0
 
                     file_item = TreeWidgetItem(path, "file", item)
                     file_item.setText(0, f"📄 {name}")
                     file_item.setText(1, format_size(size))
                     file_item.setText(2, f"{percent:.1f}%")
                     file_item.setToolTip(0, path)
+                    self._set_item_color(file_item, "file")
 
         item.set_loaded(True)
+
+    def _on_tree_collapsed(self, item):
+        if not isinstance(item, TreeWidgetItem):
+            return
+
+        text = item.text(0)
+        if text.startswith("－ "):
+            text = text.replace("－ ", "＋ ", 1)
+            item.setText(0, text)
 
     def _on_tree_selection_changed(self, current, previous):
         if not current or not isinstance(current, TreeWidgetItem):
@@ -544,7 +684,8 @@ class DiskAnalyzerApp(QMainWindow):
             return
 
         if current.item_type == "virtual_folder":
-            self.full_selected_path = current.full_path.rsplit(os.sep + "<файлы>", 1)[0]
+            self.full_selected_path = current.full_path.rsplit(
+                os.sep + "<файлы>", 1)[0]
         elif current.item_type in ("folder", "file"):
             self.full_selected_path = current.full_path
         else:
@@ -593,7 +734,8 @@ class DiskAnalyzerApp(QMainWindow):
 
             chart_data = {}
             for path, size, etype in top8:
-                name = os.path.basename(path) if os.path.basename(path) else path
+                name = os.path.basename(
+                    path) if os.path.basename(path) else path
                 chart_data[f"📁 {name}"] = size
 
             other_size = total_size - sum(size for _, size, _ in top8)
@@ -603,7 +745,13 @@ class DiskAnalyzerApp(QMainWindow):
             chart_data = {"Все данные": total_size}
 
         if chart_data and self.chartLayout:
-            canvas = build_pie_chart(self.chartContainer, chart_data, scan_path=self.selected_path)
+            is_dark = self.current_theme == "dark"
+            canvas = build_pie_chart(
+                self.chartContainer,
+                chart_data,
+                scan_path=self.selected_path,
+                is_dark=is_dark
+            )
             self.chartLayout.addWidget(canvas)
 
     def _clear_chart(self):
@@ -675,6 +823,7 @@ class DiskAnalyzerApp(QMainWindow):
 
 def signal_handler(signum, frame):
     QApplication.quit()
+
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
