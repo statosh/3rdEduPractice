@@ -335,7 +335,7 @@ class DiskAnalyzerApp(QMainWindow):
         if not QSystemTrayIcon.isSystemTrayAvailable():
             return
 
-        icon_path = os.path.join(base_dir, "../img/icon.ico")
+        icon_path = os.path.join(base_dir, "style/icon.ico")
         if os.path.exists(icon_path):
             icon = QIcon(icon_path)
         else:
@@ -834,7 +834,7 @@ if __name__ == "__main__":
     app.setApplicationName("A-One Disk Analyser")
     app.setQuitOnLastWindowClosed(False)
 
-    icon_path = os.path.join(base_dir, "../img/icon.ico")
+    icon_path = os.path.join(base_dir, "style/icon.ico")
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
 
