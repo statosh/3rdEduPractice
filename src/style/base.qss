@@ -1,0 +1,129 @@
+QLabel {
+    font-size: 13px;
+}
+
+QPushButton {
+    border-radius: 4px;
+    padding: 0 10px;
+    font-size: 13px;
+}
+
+QPushButton#copyPathButton {
+    width: 30px;
+    height: 30px;
+    padding: unset;
+}
+
+QProgressDialog QPushButton {
+    min-height: 30px;
+}
+
+QTreeWidget {
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+QTreeWidget::item {
+    padding: 4px 2px;
+}
+
+QTreeWidget::item:selected {
+    outline: none;
+    border: none;
+}
+
+QTreeWidget:focus {
+    outline: none;
+}
+
+QTreeWidget QHeaderView::section {
+    padding: 0 6px;
+    border-radius: 0px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+QTreeWidget::branch:open:has-children {
+    image: none;
+}
+
+QTreeWidget::branch:closed:has-children {
+    image: none;
+}
+
+QScrollBar:vertical {
+    background: #f5f5f5;
+    width: 6px;
+}
+
+QScrollBar::handle:vertical {
+    background: #cccccc;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #aaaaaa;
+}
+
+QScrollBar:horizontal {
+    background: #f5f5f5;
+    height: 6px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #cccccc;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: #aaaaaa;
+}
+
+QSplitter::handle {
+    background-color: transparent;
+    margin: 0px 2.5px;
+}
+
+QFrame#topFrame {
+    border-radius: 6px;
+    padding: 8px;
+}
+
+QFrame#typesFrame {
+    border-radius: 6px;
+    padding: 8px;
+}
+
+QWidget#leftPanel {
+    border-radius: 6px;
+}
+
+QWidget#rightPanel {
+    border-radius: 6px;
+}
+
+QProgressDialog QLabel {
+    font-size: 13px;
+}
+
+QProgressBar {
+    border-radius: 4px;
+    text-align: center;
+    font-size: 12px;
+}
+
+QProgressBar::chunk {
+    border-radius: 3px;
+}
+
+QMenu {
+    padding: 4px;
+}
+
+QMenu::item {
+    padding: 6px 24px;
+    border-radius: 4px;
+}
+
+QMenu::separator {
+    height: 1px;
+    margin: 4px 8px;
+}

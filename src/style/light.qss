@@ -1,0 +1,131 @@
+QMainWindow {
+    background-color: #ffffff;
+    color: #333333;
+}
+
+QLabel {
+    color: #333333;
+}
+
+QPushButton {
+    background-color: #0078d7;
+    color: white;
+    border: 1px solid #005a9e;
+}
+
+QPushButton:hover {
+    background-color: #106ebe;
+}
+
+QPushButton:pressed {
+    background-color: #005a9e;
+}
+
+QPushButton:disabled {
+    background-color: #cccccc;
+    color: #888888;
+    border: 1px solid #bbbbbb;
+}
+
+QTreeWidget {
+    background-color: #ffffff;
+    color: #333333;
+    border: 1px solid #d0d0d0;
+}
+
+QTreeWidget::item {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+QTreeWidget::item:hover {
+    background-color: #e8f0fe;
+}
+
+QTreeWidget::item:selected {
+    background-color: #0078d7;
+    color: white;
+}
+
+QTreeWidget QHeaderView::section {
+    background-color: #f5f5f5;
+    color: #333333;
+    border: 1px solid #d0d0d0;
+}
+
+QScrollBar:vertical {
+    background: #f5f5f5;
+}
+
+QScrollBar::handle:vertical {
+    background: #cccccc;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #aaaaaa;
+}
+
+QScrollBar:horizontal {
+    background: #f5f5f5;
+}
+
+QScrollBar::handle:horizontal {
+    background: #cccccc;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: #aaaaaa;
+}
+
+QFrame#topFrame {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+QFrame#typesFrame {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+QWidget#leftPanel {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+}
+
+QWidget#rightPanel {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+}
+
+QProgressDialog {
+    background-color: #ffffff;
+    color: #333333;
+}
+
+QProgressDialog QLabel {
+    color: #333333;
+}
+
+QProgressBar {
+    border: 1px solid #d0d0d0;
+    background-color: #f0f0f0;
+    color: #333333;
+}
+
+QProgressBar::chunk {
+    background-color: #0078d7;
+}
+
+QMenu {
+    background-color: #ffffff;
+    color: #333333;
+    border: 1px solid #d0d0d0;
+}
+
+QMenu::item:selected {
+    background-color: #e8f0fe;
+    color: #333333;
+}
+
+QMenu::separator {
+    background-color: #e0e0e0;
+}
