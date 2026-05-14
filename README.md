@@ -58,7 +58,7 @@ python -m venv venv
 ### ⚙️ Шаг 3: Установка зависимостей
 
 ```bash
-pip install -r requirements.txt
+pip install -r src/requirements.txt
 ```
 
 ## 🚀 Запуск приложения (Running)
@@ -97,3 +97,5 @@ pyinstaller --noconfirm --onefile --windowed --icon "src/style/icon.ico" --name 
 * `style/base.qss`: Базовые стили приложения.
 * `style/light.qss`: Стили светлой темы.
 * `style/dark.qss`: Стили тёмной темы.
+* `tests/generate_test_files.py`: Файл для генерации файлов для тестирования.
+* `tests/speedtest.md`: Файл с результатами тестирования.
