@@ -81,13 +81,11 @@ pip install pyinstaller
 
 ### 🏗️ Шаг 2: Сборка проекта
 
-Для корректной работы приложения при сборке вам необходимо убедиться, что в папке `img/` находится значок `icon.ico`, а в папках `ui/` и `style/` — соответствующие файлы.
+Для корректной работы приложения при сборке вам необходимо прикрепить папки `ui/` и `style/` с соответствующими файлами, а так же выбрать файл иконки приложения `style/icon.ico`.
 
 ```bash
-pyinstaller --onefile --windowed main.py --add-data "ui;ui" --add-data "style;style" --add-data "img;img"
+pyinstaller --noconfirm --onefile --windowed --icon "src/style/icon.ico" --name "A-One-Disk-Analyser" --add-data "src/style;style" --add-data "src/ui;ui" "src/main.py"
 ```
-
-После выполнения команды исполняемый файл будет находиться в папке `dist/`.
 
 ## 📁 Структура проекта (Code Structure)
 
